@@ -10,7 +10,6 @@ const compilerDom = require('@vue/compiler-dom')
 const {rewriteImport } = require('./utils/common/index')
 var app = new Koa();
 var router = new Router();
-let  descriptor = ''
 router.get('/', async (ctx) => {
     const { request: { url, query } } = ctx
     // 访问根目录 渲染我们的index.html
@@ -51,11 +50,11 @@ router.get('/', async (ctx) => {
      // import xx from 'xx.vue'
     // 1. 单文件组件解析
     console.log('vue url', url)
+    console.log('e')
     const p = path.resolve(__dirname, url.split('?')[0].slice(1))
     // 解析单文件组件，需要官方的库
-    const compileData  = compilerSfc.parse(fs.readFileSync(p,'utf-8'))
-    descriptor = compileData.descriptor
-    if(!query.type){
+    let {descriptor} = compilerSfc.parse(fs.readFileSync(p,'utf-8'))
+    if(!query.type) {
       // js内容
         ctx.type = 'application/javascript'
         ctx.body = `
@@ -64,6 +63,13 @@ router.get('/', async (ctx) => {
             __script.render = __render
             export default __script
         `}
+    if (query.type) {
+        // 解析我们的template 编程render函数
+        const template = descriptor.template
+        const render = compilerDom.compile(template.content, {mode:"module"}).code
+        ctx.type = 'application/javascript'
+        ctx.body = rewriteImport(render)
+    }
 }).get(/\.js$/g,async (ctx) => {
     const { request: { url } } = ctx
     const p = path.resolve(__dirname,url.slice(1))
@@ -79,15 +85,6 @@ router.get('/', async (ctx) => {
     const ret = fs.readFileSync(p,'utf-8')
     ctx.type = 'application/javascript'
     ctx.body = rewriteImport(ret)
-})
-// todo
-router.url(/\.vue/g, { query: { type: 'template' } }, async (ctx) => {
-    // 解析我们的template 编程render函数
-    console.log('here')
-    const template = descriptor.template
-    const render = compilerDom.compile(template.content, {mode:"module"}).code
-    ctx.type = 'application/javascript'
-    ctx.body = rewriteImport(render)
 })
 app.use(router.routes()).use(router.allowedMethods())
 app.listen(3038, () => {
