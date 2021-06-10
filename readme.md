@@ -18,3 +18,9 @@ koa监听得到/modules/开头的网络请求，就去node_module里查找
  -  支持import css
  - 热更新等 。ts支持等 （慢慢实现其他文件的支持）
 
+### vite实质做了哪些处理
+
+- 打开一个静态服务器
+- 正确的处理请求路径， 转化为node_module下的真实的路径
+- 使用complie-sfc处理单文件模板
+- http 服务器响应头 的content-type 设置为application/javascript, 是浏览器能够正确解析请求的文件。
